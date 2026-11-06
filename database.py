@@ -37,89 +37,90 @@ def create_tables():
     
     print("Database tables created successfully!")
     
-    def add_person(name):
-        """Creates a new person record.
+def add_person(name):
+        
+    """Creates a new person record.
         Returns the person's database ID."""
         
-        conn = get_connection()
-        cursor = conn.cursor()
+    conn = get_connection()
+    cursor = conn.cursor()
         
-        try:
-            cursor.execute("INSERT INTO persons (name) VALUES (?)",(name,))
+    try:
+        cursor.execute("INSERT INTO persons (name) VALUES (?)",(name,))
             
-            person_id = cursor.lastrowid
+        person_id = cursor.lastrowid
             
-            conn.commit()
-            
-            return person_id
-        
-        except sqlite3.IntegrityError:
-            print("This person already exists!")
-            
-            return None
-        
-        finally:
-            conn.close()
-            
-    def save_embedding(person_id,embedding):
-        """Converts a Numpy embedding ito binary data and stores it in SQLite."""
-        
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        #converts embedding to float32
-        
-        embedding = np.asarray(
-            embedding,
-            dtype=np.float32)
-        
-        #convert Numpy array into binary format
-        
-        embedding_blob = embedding.tobytes()
-        
-        cursor.execute("""INSERT INTO face_embeddings (person_id, embedding) VALUES (?,?)""",(person_id, embedding_blob))
-        
         conn.commit()
-        conn.close()
+            
+        return person_id
         
-    def get_all_embeddings():
-        """Retrieves all registered people and their embeddings.
+    except sqlite3.IntegrityError:
+        print("This person already exists!")
+            
+        return None
+        
+    finally:
+        conn.close()
+            
+def save_embedding(person_id,embedding):
+    """Converts a Numpy embedding ito binary data and stores it in SQLite."""
+        
+    conn = get_connection()
+    cursor = conn.cursor()
+        
+    #converts embedding to float32
+        
+    embedding = np.asarray(
+        embedding,
+        dtype=np.float32)
+        
+    #convert Numpy array into binary format
+        
+    embedding_blob = embedding.tobytes()
+        
+    cursor.execute("""INSERT INTO face_embeddings (person_id, embedding) VALUES (?,?)""",(person_id, embedding_blob))
+        
+    conn.commit()
+    conn.close()
+        
+def get_all_embeddings():
+    """Retrieves all registered people and their embeddings.
         Converts binary data back into Numpy arrays."""
         
-        conn = get_connection()
-        cursor = conn.cursor()
+    conn = get_connection()
+    cursor = conn.cursor()
         
-        cursor.execute("""SELECT persons.id, persons.name, face_embeddings.embedding
-        FROM persons JOIN face|_embeddings ON persons.id = face_embeddings.persons_id""")
+    cursor.execute("""SELECT persons.id, persons.name, face_embeddings.embedding
+    FROM persons JOIN face_embeddings ON persons.id = face_embeddings.person_id""")
         
-        rows = cursor.fetchall()
-        conn.close()
+    rows = cursor.fetchall()
+    conn.close()
         
-        results = []
+    results = []
         
-        for person_id, name, embedding_blob in rows:
+    for person_id, name, embedding_blob in rows:
             
-            #Convert binary data back into Numpy array
+        #Convert binary data back into Numpy array
             
-            embedding = np.frombuffer(embedding_blob,dtype = np.float32).copy()
+        embedding = np.frombuffer(embedding_blob,dtype = np.float32).copy()
             
-            results.append({
-                "id": person_id,
-                "name" : name,
-                "embedding" : embedding
+        results.append({
+            "id": person_id,
+            "name" : name,
+            "embedding" : embedding
             })
             
-            return results
+    return results
         
-    def delete_person(person_id):
-        """Deletes a person and their associatedembeddings.
+def delete_person(person_id):
+    """Deletes a person and their associatedembeddings.
         """
-        conn = get_connection()
-        conn.execute("PRAGMA foreign_keys = ON")
+    conn = get_connection()
+    conn.execute("PRAGMA foreign_keys = ON")
         
-        cursor = conn.cursor()
+    cursor = conn.cursor()
         
-        cursor.execute("DELETE FROM persons WHERE id = ?", (person_id,))
+    cursor.execute("DELETE FROM persons WHERE id = ?", (person_id,))
         
-        conn.commit()
-        conn.close()
+    conn.commit()
+    conn.close()
